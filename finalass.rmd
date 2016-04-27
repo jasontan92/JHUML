@@ -69,8 +69,7 @@ print(qdaconf)
 sum(diag(qdaconf)/sum(qdaconf))
 ```
 
-Hence, the QDA model will be used for the validation. This produces the answer for the validation set, which scored a 100% accuracy on the first attempt. (on the Quiz)
+Hence, the QDA model will be used for the validation. This produces the answer for the validation set, which scored a 100% accuracy on the first attempt(on the Quiz). The answer will however, not be shown due to the Coursera Honor code.
 ```{r}
 qdavalid <- predict(qdamod, validation)
-print(qdavalid)
 ```

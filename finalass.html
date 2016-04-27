@@ -190,12 +190,9 @@ print(qdaconf)</code></pre>
 ##   E    0   17   26   18  646</code></pre>
 <pre class="r"><code>sum(diag(qdaconf)/sum(qdaconf))</code></pre>
 <pre><code>## [1] 0.910828</code></pre>
-<p>Hence, the QDA model will be used for the validation. This produces the answer for the validation set, which scored a 100% accuracy on the first attempt. (on the Quiz)</p>
+<p>Hence, the QDA model will be used for the validation. This produces the answer for the validation set, which scored a 100% accuracy on the first attempt(on the Quiz). The answer will however, not be shown due to the Coursera Honor code.</p>
 <pre class="r"><code>qdavalid &lt;- predict(qdamod, validation)</code></pre>
 <pre><code>## Loading required package: MASS</code></pre>
-<pre class="r"><code>print(qdavalid)</code></pre>
-<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
-## Levels: A B C D E</code></pre>
 </div>
 
 
