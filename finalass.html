@@ -116,11 +116,25 @@ $(document).ready(function () {
 </div>
 
 
+<div id="executive-summary" class="section level1">
+<h1>Executive Summary</h1>
+<p>This report will make predictions based on data collected by wearable gadgets worn by 6 individuals when exercising. The response variable, <code>classe</code> represents 5 different postures (‘A’ to ‘E’), some of which are correct or incorrect. This paper will use all the different inputs to predict the posture adopted by the wearer.</p>
+</div>
+<div id="pre-analysis-preparation" class="section level1">
+<h1>Pre-Analysis preparation</h1>
+<div id="loading-required-libraries" class="section level3">
+<h3>Loading Required Libraries</h3>
 <pre class="r"><code>library(caret)</code></pre>
+</div>
+<div id="loading-data" class="section level3">
+<h3>Loading Data</h3>
 <p>Due to the large size of the data, we can afford to have training-test-validation sets. The 20 test samples will be used as validation. We will further split the 19622 training set to a 80-20 ratio to create a test set.</p>
 <pre class="r"><code>set.seed(0924)
 dat &lt;- read.csv(&quot;gaData.csv&quot;)
 validation &lt;- read.csv(&quot;pml-testing.csv&quot;)</code></pre>
+</div>
+<div id="data-cleaning" class="section level3">
+<h3>Data Cleaning</h3>
 <p>There exists many ‘faulty’ variables in the dataset which includes mostly NA or blank values. They will be removed with the following code. The result is 56 remaining variables.</p>
 <pre class="r"><code>#Removing variables with predominant NAs
 naindex &lt;- which(apply(apply(dat, 2, is.na),2,sum) &gt; 10000)
@@ -135,11 +149,18 @@ newdat &lt;- newdat[,-which(grepl(&quot;^min&quot;,names(newdat)))]
 newdat &lt;- newdat[,-which(grepl(&quot;^amplitude&quot;,names(newdat)))]
 dim(newdat)</code></pre>
 <pre><code>## [1] 19622    56</code></pre>
+</div>
+<div id="data-preparation-for-training-testing-and-cross-validation" class="section level3">
+<h3>Data Preparation for training, testing and cross validation</h3>
 <pre class="r"><code>#Creating data partititions without the caret package
 train_i &lt;- sample(1:dim(newdat)[1], 0.8*dim(newdat)[1])
 training &lt;- newdat[train_i,]
 testing &lt;- newdat[-train_i,]</code></pre>
-<p>Due to the extremely large number of data points and computational limits, memory intensive methods such as gbm, random forests cannot be used. More simple methods such as linear discriminant analysis and quadratic discriminant analysis will be used.</p>
+</div>
+</div>
+<div id="machine-learning-model-selection-process" class="section level1">
+<h1>Machine Learning Model Selection process</h1>
+<p>Due to the extremely large number of data points and computational limits, memory intensive methods such as gbm, random forests cannot be used. More simple classification methods such as linear discriminant analysis and quadratic discriminant analysis will be used. When the error rates are unsatisfactory, we will move on to the next method until we find a satisfactory method with an error rate of less than 20%.</p>
 <p>The accuracy results in <code>ldaconf</code> seems to be unsatisfactory. Accuracy is at 0.75, and this is expected because lda assumes equal variance among all variables, which is clearly false.</p>
 <pre class="r"><code>ldamod &lt;- train(classe ~ . -X, data = training,  method = 'lda')</code></pre>
 <pre><code>## Loading required package: MASS</code></pre>
@@ -155,7 +176,7 @@ print(ldaconf)</code></pre>
 ##   E  27  91  43  58 488</code></pre>
 <pre class="r"><code>sum(diag(ldaconf))/sum(ldaconf)</code></pre>
 <pre><code>## [1] 0.7487898</code></pre>
-<p>QDA will now be used. In QDA, the equal variance assumption is omitted, hence likely leading to a better prediction. Looking at <code>qdaconf</code>, the accuracy has improved remarkably to 0.89</p>
+<p>QDA will now be used. In QDA, the equal variance assumption is omitted, hence likely leading to a better prediction. Looking at <code>qdaconf</code>, the accuracy has improved remarkably to 0.91. This model is satisfactory.</p>
 <pre class="r"><code>qdamod &lt;- train(classe ~ . -X, data = training,  method = 'qda')
 qdapred &lt;- predict(qdamod, testing)
 qdaconf &lt;- table(testing$classe,qdapred)
@@ -170,10 +191,12 @@ print(qdaconf)</code></pre>
 <pre class="r"><code>sum(diag(qdaconf)/sum(qdaconf))</code></pre>
 <pre><code>## [1] 0.910828</code></pre>
 <p>Hence, the QDA model will be used for the validation. This produces the answer for the validation set, which scored a 100% accuracy on the first attempt. (on the Quiz)</p>
-<pre class="r"><code>qdavalid &lt;- predict(qdamod, validation)
-print(qdavalid)</code></pre>
+<pre class="r"><code>qdavalid &lt;- predict(qdamod, validation)</code></pre>
+<pre><code>## Loading required package: MASS</code></pre>
+<pre class="r"><code>print(qdavalid)</code></pre>
 <pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
 ## Levels: A B C D E</code></pre>
+</div>
 
 
 

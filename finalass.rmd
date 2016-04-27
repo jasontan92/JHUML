@@ -4,10 +4,17 @@ author: "Jason Tan"
 date: "27 April 2016"
 output: html_document
 ---
+#Executive Summary
+This report will make predictions based on data collected by wearable gadgets worn by 6 individuals when exercising. The response variable, `classe` represents 5 different postures ('A' to 'E'), some of which are correct or incorrect. This paper will use all the different inputs to predict the posture adopted by the wearer. 
+
+#Pre-Analysis preparation
+
+###Loading Required Libraries
 ```{r, message = FALSE, warning = FALSE}
 library(caret)
 ```
 
+###Loading Data
 Due to the large size of the data, we can afford to have training-test-validation sets. The 20 test samples will be used as validation. We will further split the 19622 training set to a 80-20 ratio to create a test set. 
 ```{r}
 set.seed(0924)
@@ -15,6 +22,7 @@ dat <- read.csv("gaData.csv")
 validation <- read.csv("pml-testing.csv")
 ```
 
+###Data Cleaning
 There exists many 'faulty' variables in the dataset which includes mostly NA or blank values. They will be removed with the following code. The result is 56 remaining variables.
 ```{r}
 #Removing variables with predominant NAs
@@ -31,6 +39,7 @@ newdat <- newdat[,-which(grepl("^amplitude",names(newdat)))]
 dim(newdat)
 ```
 
+###Data Preparation for training,  testing and cross validation
 ```{r}
 #Creating data partititions without the caret package
 train_i <- sample(1:dim(newdat)[1], 0.8*dim(newdat)[1])
@@ -38,7 +47,8 @@ training <- newdat[train_i,]
 testing <- newdat[-train_i,]
 ```
 
-Due to the extremely large number of data points and computational limits, memory intensive methods such as gbm, random forests cannot be used. More simple methods such as linear discriminant analysis and quadratic discriminant analysis will be used. 
+#Machine Learning Model Selection process
+Due to the extremely large number of data points and computational limits, memory intensive methods such as gbm, random forests cannot be used. More simple classification methods such as linear discriminant analysis and quadratic discriminant analysis will be used. When the error rates are unsatisfactory, we will move on to the next method until we find a satisfactory method with an error rate of less than 20%. 
 
 The accuracy results in `ldaconf` seems to be unsatisfactory. Accuracy is at 0.75, and this is expected because lda assumes equal variance among all variables, which is clearly false.  
 
@@ -50,7 +60,7 @@ print(ldaconf)
 sum(diag(ldaconf))/sum(ldaconf)
 ```
 
-QDA will now be used. In QDA, the equal variance assumption is omitted, hence likely leading to a better prediction. Looking at `qdaconf`, the accuracy has improved remarkably to 0.89
+QDA will now be used. In QDA, the equal variance assumption is omitted, hence likely leading to a better prediction. Looking at `qdaconf`, the accuracy has improved remarkably to 0.91. This model is satisfactory.
 ```{r, cache = TRUE}
 qdamod <- train(classe ~ . -X, data = training,  method = 'qda')
 qdapred <- predict(qdamod, testing)
