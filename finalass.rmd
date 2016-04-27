@@ -1,0 +1,66 @@
+---
+title: "Machine Learning Final Assignment"
+author: "Jason Tan"
+date: "27 April 2016"
+output: html_document
+---
+```{r, message = FALSE, warning = FALSE}
+library(caret)
+```
+
+Due to the large size of the data, we can afford to have training-test-validation sets. The 20 test samples will be used as validation. We will further split the 19622 training set to a 80-20 ratio to create a test set. 
+```{r}
+set.seed(0924)
+dat <- read.csv("gaData.csv")
+validation <- read.csv("pml-testing.csv")
+```
+
+There exists many 'faulty' variables in the dataset which includes mostly NA or blank values. They will be removed with the following code. The result is 56 remaining variables.
+```{r}
+#Removing variables with predominant NAs
+naindex <- which(apply(apply(dat, 2, is.na),2,sum) > 10000)
+newdat <- dat[,-naindex]
+#Removing non-meaningful timestamps, dates since they are either in non-meaningful formats or not useful for this analysis 
+newdat <- newdat[,-(3:6)]
+#It is obvious that variables with names "amplitude" "skewness" "kurtosis" "max" and "min" all have mostly blank values
+newdat <- newdat[,-which(grepl("^skewness",names(newdat)))]
+newdat <- newdat[,-which(grepl("^kurtosis",names(newdat)))]
+newdat <- newdat[,-which(grepl("^max",names(newdat)))]
+newdat <- newdat[,-which(grepl("^min",names(newdat)))]
+newdat <- newdat[,-which(grepl("^amplitude",names(newdat)))]
+dim(newdat)
+```
+
+```{r}
+#Creating data partititions without the caret package
+train_i <- sample(1:dim(newdat)[1], 0.8*dim(newdat)[1])
+training <- newdat[train_i,]
+testing <- newdat[-train_i,]
+```
+
+Due to the extremely large number of data points and computational limits, memory intensive methods such as gbm, random forests cannot be used. More simple methods such as linear discriminant analysis and quadratic discriminant analysis will be used. 
+
+The accuracy results in `ldaconf` seems to be unsatisfactory. Accuracy is at 0.75, and this is expected because lda assumes equal variance among all variables, which is clearly false.  
+
+```{r, cache = TRUE}
+ldamod <- train(classe ~ . -X, data = training,  method = 'lda')
+ldapred <- predict(ldamod, testing)
+ldaconf <- table(testing$classe, ldapred)
+print(ldaconf)
+sum(diag(ldaconf))/sum(ldaconf)
+```
+
+QDA will now be used. In QDA, the equal variance assumption is omitted, hence likely leading to a better prediction. Looking at `qdaconf`, the accuracy has improved remarkably to 0.89
+```{r, cache = TRUE}
+qdamod <- train(classe ~ . -X, data = training,  method = 'qda')
+qdapred <- predict(qdamod, testing)
+qdaconf <- table(testing$classe,qdapred)
+print(qdaconf)
+sum(diag(qdaconf)/sum(qdaconf))
+```
+
+Hence, the QDA model will be used for the validation. This produces the answer for the validation set, which scored a 100% accuracy on the first attempt. (on the Quiz)
+```{r}
+qdavalid <- predict(qdamod, validation)
+print(qdavalid)
+```
