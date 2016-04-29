@@ -7,6 +7,8 @@ output: html_document
 #Executive Summary
 This report will make predictions based on data collected by wearable gadgets worn by 6 individuals when exercising. The response variable, `classe` represents 5 different postures ('A' to 'E'), some of which are correct or incorrect. This paper will use all the different inputs to predict the posture adopted by the wearer. 
 
+Due to the huge dataset and the limited computational capabilities, this research will start from the simplest method, and then scale it up with bagging methods if the accuracy is unsatisfactory. Because of the large number of features and datapoints, we expect that a complex method is unnecessary to obtain a good prediction. 
+
 #Pre-Analysis preparation
 
 ###Loading Required Libraries
@@ -39,7 +41,7 @@ newdat <- newdat[,-which(grepl("^amplitude",names(newdat)))]
 dim(newdat)
 ```
 
-###Data Preparation for training,  testing and cross validation
+###Data Preparation for training,  testing
 ```{r}
 #Creating data partititions without the caret package
 train_i <- sample(1:dim(newdat)[1], 0.8*dim(newdat)[1])
@@ -47,22 +49,48 @@ training <- newdat[train_i,]
 testing <- newdat[-train_i,]
 ```
 
-#Machine Learning Model Selection process
-Due to the extremely large number of data points and computational limits, memory intensive methods such as gbm, random forests cannot be used. More simple classification methods such as linear discriminant analysis and quadratic discriminant analysis will be used. When the error rates are unsatisfactory, we will move on to the next method until we find a satisfactory method with an error rate of less than 20%. 
+###Preparing Cross validation Parameter
+```{r}
+cvControl <- trainControl(method = "repeatedcv", number = 5, repeats = 2, search = "random")
+```
 
-The accuracy results in `ldaconf` seems to be unsatisfactory. Accuracy is at 0.75, and this is expected because lda assumes equal variance among all variables, which is clearly false.  
+#Machine Learning Model Selection process
+Due to the extremely large number of data points and computational limits, we will start from the simplest methods and scale it up if the accuracy is unsatisfactory. The classifaction techniques under consideration, in order of complexity, are *linear discriminant analysis* > *quadratic discrimant analysis* > *XGB Boost* > *Random Forests*. More simple classification methods such as linear discriminant analysis and quadratic discriminant analysis will be used first. When the out of sample error rates are more than 10%, we will continue to the next simplest method.  
+
+It is important to note that the validation set, which consist of 20 samples, will only be used to test the final selected model, otherwise, we would be unwittingly performing "training" on our validation set. Furthermore, we already have a large test set of 3925 observations.
+
+###Linear Discriminant Analysis
+
+After Cross Validation, out of sample error from repeated sampling within the training data is at **0.7449**. 
 
 ```{r, cache = TRUE}
-ldamod <- train(classe ~ . -X, data = training,  method = 'lda')
+ldamod <- train(classe ~ . -X,trControl = cvControl, data = training,  method = 'lda')
+print(ldamod)
+```
+
+
+The test accuracy, on the other hand, the test error rate from `ldaconf` is 0.749. This is unsatisfactory. The unsatisfactory error rate from both cross validation and testing is expected because lda assumes homoscedacity, which is clearly false.  
+
+```{r}
 ldapred <- predict(ldamod, testing)
 ldaconf <- table(testing$classe, ldapred)
 print(ldaconf)
 sum(diag(ldaconf))/sum(ldaconf)
 ```
 
-QDA will now be used. In QDA, the equal variance assumption is omitted, hence likely leading to a better prediction. Looking at `qdaconf`, the accuracy has improved remarkably to 0.91. This model is satisfactory.
+###Quadratic Discrimant Analysis
+QDA will now be used. In QDA, the homoscedacity assumption is omitted, hence likely leading to a better prediction. 
+
+The out of sample accuracy from repeated cross validation when training has improved remarkably to **0.915**. This provides an indication that QDA is an appropriate model to use in this context. 
+
 ```{r, cache = TRUE}
-qdamod <- train(classe ~ . -X, data = training,  method = 'qda')
+qdamod <- train(classe ~ . -X, data = training, trControl = cvControl,  method = 'qda')
+print(qdamod)
+```
+
+
+The test accuracy of **0.911** has exceeded our expectations and thus, we will not move on to more complex methods. 
+```{r}
 qdapred <- predict(qdamod, testing)
 qdaconf <- table(testing$classe,qdapred)
 print(qdaconf)
